@@ -42,10 +42,10 @@
           plain
           icon="el-icon-edit"
           size="mini"
-          :disabled="single"
-          @click="handleUpdate"
+
+          @click="handleMutiUpdate"
           v-hasPermi="['dataset:data:edit']"
-        >标注</el-button>
+        >批量标注</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -91,7 +91,9 @@
       <el-table-column label="标注标签" align="center" prop="notation" />
       <el-table-column label="图片/视频" min-width="250px" align="center" prop="item">
         <template slot-scope="scope">
-          <img :src="getImageUrl(scope.row.item)" alt="null">
+          <div class="image-container">
+            <img :src="getImageUrl(scope.row.item)" alt="null">
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
@@ -153,13 +155,28 @@
           <el-input v-model="form.notation" placeholder="请输入标签名" />
         </el-form-item>
         <el-form-item label="图片">
-          <img :src="getImageUrl_read_only(this.item_read_only)" alt="null">
+          <div class="image-container">
+            <img :src="getImageUrl_read_only(this.item_read_only)" alt="null">
+          </div>
         </el-form-item>
 
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button type="primary" @click="submitForm">确 定</el-button>
         <el-button @click="cancel">取 消</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 批量标注对话框 -->
+    <el-dialog :title="title" :visible.sync="muti_notation_open" width="500px" append-to-body>
+      <el-form ref="form" :model="form" :rules="rules" label-width="80px">
+        <el-form-item label="标签" prop="notation">
+          <el-input v-model="form.notation" placeholder="请输入标签名" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="submitMutiUpload">确 定</el-button>
+        <el-button @click="cancelMutiUpload">取 消</el-button>
       </div>
     </el-dialog>
 
@@ -196,6 +213,8 @@ export default {
       open: false,
       //是否显示标注层
       notation_open:false,
+      muti_notation_open:false,
+      muti_ids:[],
       // 查询参数
       queryParams: {
         pageNum: 1,
@@ -266,6 +285,11 @@ export default {
       this.open = false;
       this.reset();
     },
+    // 取消上传按钮
+    cancelMutiUpload() {
+      this.muti_notation_open = false;
+      this.reset();
+    },
     // 表单重置
     reset() {
       this.form = {
@@ -318,7 +342,6 @@ export default {
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
-      console.log(row);
       this.item_read_only = row.item;
       this.reset();
       const dataId = row.dataId || this.ids
@@ -329,39 +352,134 @@ export default {
         this.title = "标注数据";
       });
     },
+
+    /** 批量标注按钮操作 */
+    handleMutiUpdate(row) {
+      const dataIds = row.dataId || this.ids;
+      this.muti_ids = dataIds;
+      this.reset();
+      this.muti_notation_open = true;
+      this.title = "批量标注";
+      console.log(dataIds);
+      // const dataId = row.dataId || this.ids
+      // getData(dataId).then(response => {
+      //   this.form = response.data;
+      //   this.notation_open = true;
+      //   // this.open = true;
+      //   this.title = "标注数据";
+      // });
+    },
+
+    // /** 上传图片 **/
+    // upload(){
+    //   console.log("upload");
+    //   let forms = []
+    //   this.fileList.forEach( file =>{
+    //     if(file.name !=null&&file.name !==''){
+    //       let formData = new FormData();
+    //       formData.append('file', file.raw);
+    //       formData.append('dataset_id', this.$route.query.dataset_id);
+    //       // formData.append('item', file.raw);
+    //       // let t_form={}
+    //       // t_form.itemName = file.name;
+    //       // t_form.item = file.raw;
+    //       forms.push(formData)
+    //     }
+    //   })
+    //   console.log("forms", forms);
+    //   if(forms.length===0){
+    //     this.$modal.msg("无文件上传");
+    //   }
+    //   else {
+    //     forms.forEach(form => {
+    //       console.log("submit", form)
+    //       uploadData(form).then(response => {
+    //         this.$modal.msgSuccess("导入成功");
+    //         this.open = false;
+    //         this.getList();
+    //         console.log(response);
+    //         // 重置fileList
+    //         this.fileList = [];
+    //       })
+    //     })
+    //   }
+    //
+    // },
+
     /** 上传图片 **/
     upload(){
       console.log("upload");
       let forms = []
+      const formData = new FormData();
+      formData.append('dataset_id', this.$route.query.dataset_id);
       this.fileList.forEach( file =>{
         if(file.name !=null&&file.name !==''){
-          let formData = new FormData();
           formData.append('file', file.raw);
-          formData.append('dataset_id', this.$route.query.dataset_id);
           // formData.append('item', file.raw);
           // let t_form={}
           // t_form.itemName = file.name;
           // t_form.item = file.raw;
-          forms.push(formData)
+          // forms.push(formData)
         }
       })
-      console.log("forms", forms);
-      if(forms.length===0){
-        this.$modal.msg("无文件上传");
+      // console.log("formData", formData);
+
+      console.log("submit", formData)
+      uploadData(formData).then(response => {
+        this.$modal.msgSuccess("导入成功");
+        this.open = false;
+        this.getList();
+        console.log(response);
+        // 重置fileList
+        this.fileList = [];
+      })
+
+      // if(forms.length===0){
+      //   this.$modal.msg("无文件上传");
+      // }
+      // else {
+      //   forms.forEach(form => {
+      //     console.log("submit", form)
+      //     uploadData(form).then(response => {
+      //       this.$modal.msgSuccess("导入成功");
+      //       this.open = false;
+      //       this.getList();
+      //       console.log(response);
+      //       // 重置fileList
+      //       this.fileList = [];
+      //     })
+      //   })
+      // }
+
+    },
+    submitMutiUpload(){
+      console.log("submitMutiUpload", this.form);
+
+      if(this.form.notation != null && this.form.notation !== ""){
+        this.form.isNotation=1;
       }
       else {
-        forms.forEach(form => {
-          console.log("submit", form)
-          uploadData(form).then(response => {
-            this.$modal.msgSuccess("导入成功");
-            this.open = false;
-            this.getList();
-            console.log(response);
-            // 重置fileList
-            this.fileList = [];
-          })
-        })
+        this.form.isNotation=0;
+        this.form.notation="";
       }
+      let forms = [];
+      this.muti_ids.forEach( id =>{
+        forms.push({
+          dataId: id,
+          itemName: this.form.itemName,
+          isNotation: this.form.isNotation,
+          notation: this.form.notation,
+          item: this.form.item,
+          sysDatasetData:this.form.sysDatasetData,
+        });
+      })
+      console.log(forms);
+      updateData(forms).then(response => {
+        this.$modal.msgSuccess("标注成功");
+        // this.open = false;
+        this.muti_notation_open = false;
+        this.getList();
+      });
 
     },
     /** 提交按钮 */
@@ -376,7 +494,7 @@ export default {
             else {
               this.form.isNotation=0;
             }
-            updateData(this.form).then(response => {
+            updateData([this.form]).then(response => {
               console.log('after', this.form)
               this.$modal.msgSuccess("标注成功");
               // this.open = false;
@@ -395,6 +513,7 @@ export default {
     },
     /** 删除按钮操作 */
     handleDelete(row) {
+
       const dataIds = row.dataId || this.ids;
 
       let dataIdsWithDatasetId = []
@@ -427,3 +546,15 @@ export default {
   }
 };
 </script>
+
+<style>
+.image-container {
+  max-width: 100%; /* 设置容器最大宽度 */
+  height: auto; /* 高度自适应 */
+}
+
+.image-container img {
+  width: 100%; /* 图片宽度占满容器 */
+  height: auto; /* 高度自适应 */
+}
+</style>
