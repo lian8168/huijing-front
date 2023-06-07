@@ -133,7 +133,7 @@
             type="text"
             icon="el-icon-edit"
             @click="handleNotation(scope.row)"
-          >去标注</el-button>
+          >{{ scope.row.teamType === '0' ? "去标注" : "去审核" }}</el-button>
           <el-button
             size="mini"
             type="text"
@@ -289,6 +289,9 @@ export default {
       teams:[],
       // 标注团队字典
       teamDict:{},
+      // 标注团队类型字典
+      teamTypeDict:{},
+      actionTypeStr:"去标注",
       // 表单校验
       rules: {
         taskName: [
@@ -334,20 +337,26 @@ export default {
           console.log(this.datasetDict);
           // 查找标注团队列表（v1 尚未与用户关联）
           listTeam({}).then(res => {
+            console.log("查询团队",res.rows);
             res.rows.forEach(team => {
               let item = {
                 team_id:team.teamId,
-                team_name:team.teamName
+                team_name:team.teamName,
               }
               this.teamDict[team.teamName]=team.teamId
+              this.teamTypeDict[team.teamName]=team.dataType
               this.teams.push(item)
             })
             console.log(this.teams);
             console.log(this.teamDict);
 
             listTask(this.queryParams).then(resp => {
-              console.log("任务", resp);
+
               this.taskList = resp.rows;
+              this.taskList.forEach(taskItem => {
+                taskItem.teamType=this.teamTypeDict[taskItem.teamName]
+              })
+              console.log("任务", this.taskList);
               this.total = resp.total;
               this.loading = false;
             });
@@ -358,6 +367,9 @@ export default {
         listTask(this.queryParams).then(resp => {
           console.log("任务", resp);
           this.taskList = resp.rows;
+          this.taskList.forEach(taskItem => {
+            taskItem.teamType=this.teamTypeDict[taskItem.teamName]
+          })
           this.total = resp.total;
           this.loading = false;
         });
@@ -467,7 +479,8 @@ export default {
     /** 去标注 */
     handleNotation(row){
       this.$router.push({path: '/data', query:{
-          dataset_id:row.datasetId
+          dataset_id:row.datasetId,
+          team_type:row.teamType
         }
       })
     },

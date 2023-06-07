@@ -45,7 +45,7 @@
 
           @click="handleMutiUpdate"
           v-hasPermi="['dataset:data:edit']"
-        >批量标注</el-button>
+        >批量{{review_or_notation}}</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -104,7 +104,7 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['dataset:data:edit']"
-          >标注</el-button>
+          >{{review_or_notation}}</el-button>
           <el-button
             size="mini"
             type="text"
@@ -192,6 +192,7 @@ export default {
   dicts: ['notation_yes_no'],
   data() {
     return {
+      review_or_notation:"标注",
       // 遮罩层
       loading: true,
       item_read_only: "",
@@ -250,6 +251,12 @@ export default {
     /** 查询数据标注列表 */
     getList() {
       console.log(this.$route.query.dataset_id);
+      if(this.$route.query.team_type !== undefined){
+        if(this.$route.query.team_type==='1'){
+          this.review_or_notation="审核";
+        }
+
+      }
       if(this.$route.query.dataset_id !== undefined){
         this.queryParams["sysDatasetData.datasetId"]=this.$route.query.dataset_id;
         console.log(this.queryParams);
